@@ -44,7 +44,7 @@
 
 -- main module class table
 local winter = {
-  _VERSION     = '0.3.0',
+  _VERSION     = '0.3.1',
   _DESCRIPTION = 'A module for moving/resizing windows using a fluent interface',
   _URL         = 'https://github.com/knl/mjolnir.winter',
 }
@@ -437,10 +437,16 @@ function WinterAction:act()
   return function()
     local f = {}
     local win = nil
-    if title then
-       local app = appfinder.app_from_name(title)
-       win = app:mainwindow()
-       -- alert.show(string.format('application title for %q is %q, main window %q', title, app:title(), window:title()))
+    if self.title and self.title ~= '' then
+      local app = appfinder.app_from_name(self.title)
+      if not app then
+        error(string.format('Could not find application with title "%s"', self.title))
+      end
+      win = app:mainwindow()
+      if not win then
+        error(string.format('Application "%s" does not have a main window', self.title))
+      end
+      -- alert.show(string.format('application title for %q is %q, main window %q', title, app:title(), window:title()))
     else
       win = window.focusedwindow()
     end
