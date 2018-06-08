@@ -5,7 +5,7 @@ package = "mjolnir.winter"
 -- versioning
 
 local src_version = "0.1.0"
-local pkg_version = "1"
+local pkg_version = "2"
 version = src_version .. "-" .. pkg_version
 
 -- General metadata:
@@ -17,7 +17,7 @@ local desc = [[
 
 -- LuaDist source
 source = {
-  tag = "0.1.0-1",
+  tag = "0.1.0-2",
   url = "git://github.com/LuaDist-testing/mjolnir.winter.git"
 }
 -- Original source
@@ -38,7 +38,6 @@ description = {
 supported_platforms = {"macosx"}
 dependencies = {
   "lua >= 5.2",
-  "mjolnir.window",
   "mjolnir.cmsj.appfinder",
 }
 
