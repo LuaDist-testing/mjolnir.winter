@@ -5,7 +5,7 @@ package = "mjolnir.winter"
 -- versioning
 
 local src_version = "0.1.0"
-local pkg_version = "0"
+local pkg_version = "1"
 version = src_version .. "-" .. pkg_version
 
 -- General metadata:
@@ -17,7 +17,7 @@ local desc = [[
 
 -- LuaDist source
 source = {
-  tag = "0.1.0-0",
+  tag = "0.1.0-1",
   url = "git://github.com/LuaDist-testing/mjolnir.winter.git"
 }
 -- Original source
