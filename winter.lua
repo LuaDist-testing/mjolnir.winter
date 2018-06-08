@@ -44,7 +44,7 @@
 
 -- main module class table
 local winter = {
-  _VERSION     = '0.3.1',
+  _VERSION     = '0.3.2',
   _DESCRIPTION = 'A module for moving/resizing windows using a fluent interface',
   _URL         = 'https://github.com/knl/mjolnir.winter',
 }
@@ -126,7 +126,7 @@ local function init_winter_action(title)
     _vcenter = false,
     _hcenter = false,
     -- screen
-    mainscreen = false,
+    _mainscreen = false,
     dscreen = 0, -- for prev/next
     screen_compass = {}, -- for east/west/north/south
     -- 'mosts'
@@ -354,7 +354,7 @@ end
 --- Moves the focused window to the next screen, using its current position on that screen.
 --- Will reset any of the directional commands (screen() with param 'east'/'west'/'south'/'north').
 function WinterAction:nextscreen()
-  -- self.mainscreen = false
+  -- self._mainscreen = false
   self.screen_compass = {}
   self.dscreen = self.dscreen + 1
   return self
@@ -365,7 +365,7 @@ end
 --- Moves the window to the previous screen, using its current position on that screen.
 --- Will reset any of the directional commands (screen() with param 'east'/'west'/'south'/'north').
 function WinterAction:prevscreen()
-  -- self.mainscreen = false
+  -- self._mainscreen = false
   self.screen_compass = {}
   self.dscreen = self.dscreen - 1
   return self
@@ -377,7 +377,7 @@ end
 --- Will reset any of the directional commands (screen() with param 'east'/'west'/'south'/'north'),
 --- in addition to reseting any prev/next screen commands.
 function WinterAction:mainscreen()
-  self.mainscreen = true
+  self._mainscreen = true
   self.screen_compass = {}
   self.dscreen = 0
   return self
@@ -453,7 +453,7 @@ function WinterAction:act()
 
     -- first, determine the screen where the window should go
     local screen = win:screen()
-    if self.mainscreen then
+    if self._mainscreen then
       screen = mscreen.mainscreen()
     end
     local dscreen = self.dscreen
