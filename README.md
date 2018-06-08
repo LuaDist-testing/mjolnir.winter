@@ -34,7 +34,7 @@ will return a function that one can easily pass to hotkey.bind.
 
 ## Todo
 
-- [ ] vcenter/hcenter
+- [x] vcenter/hcenter (done in 8c983c59b4593259e6aa4b3c714001227f58ec8b)
 - [x] improve screen handling (done in 5851cbe)
 - [ ] tests
 - [ ] do a proper documentation, as the one coming with mjolnir is painfull

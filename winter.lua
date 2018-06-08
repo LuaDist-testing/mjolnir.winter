@@ -6,24 +6,29 @@
 ---
 --- Usage:
 ---
----     local winter = require "mjolnir.winter"
+---     local wintermod = require "mjolnir.winter"
+---     local winter = wintermod.new()
 ---
 ---     local cmdalt  = {"cmd", "alt"}
 ---     local scmdalt  = {"cmd", "alt", "shift"}
 ---     local ccmdalt = {"ctrl", "cmd", "alt"}
 ---
 ---     -- make the focused window a 200px, full-height window and put it at the left screen edge
----     hotkey.bind(cmdalt, 'h', winter.focused():wide(200):tallest():leftmost():place())
+---     hotkey.bind(cmdalt, 'h', winter:focused():wide(200):tallest():leftmost():place())
 ---
 ---     -- make a full-height window and put it at the right screen edge
----     hotkey.bind(cmdalt, 'j', winter.focused():tallest():rightmost():place())
+---     hotkey.bind(cmdalt, 'j', winter:focused():tallest():rightmost():place())
 ---
 ---     -- full-height window, full-width window, and a combination
----     hotkey.bind(scmdalt, '\\', winter.focused():tallest():resize())
----     hotkey.bind(scmdalt, '-', winter.focused():widest():resize())
----     hotkey.bind(scmdalt, '=', winter.focused():widest():tallest():resize())
+---     hotkey.bind(scmdalt, '\\', winter:focused():tallest():resize())
+---     hotkey.bind(scmdalt, '-', winter:focused():widest():resize())
+---     hotkey.bind(scmdalt, '=', winter:focused():widest():tallest():resize())
 ---
---- *NOTE*: One must start with `winter.focused()` or `winter.window('title')`
+---     -- push to different screen
+---     hotkey.bind(cmdalt, '[', winter:focused():prevscreen():move())
+---     hotkey.bind(cmdalt, ']', winter:focused():nextscreen():move())
+---
+--- *NOTE*: One must start with `winter:focused()` or `winter:window('title')`
 --- and end with a command `move()`, `place()`, `resize()`, or `act()`
 --- (they are all synonyms for the same action). This chain of command
 ---- will return a function that one can pass to hotkey.bind.
@@ -39,7 +44,7 @@
 
 -- main module class table
 local winter = {
-  _VERSION     = '0.2.0',
+  _VERSION     = '0.3.0',
   _DESCRIPTION = 'A module for moving/resizing windows using a fluent interface',
   _URL         = 'https://github.com/knl/mjolnir.winter',
 }
@@ -117,6 +122,9 @@ local function init_winter_action(title)
     dy = 0,
     dw = 0,
     dh = 0,
+    -- centering
+    _vcenter = false,
+    _hcenter = false,
     -- screen
     mainscreen = false,
     dscreen = 0, -- for prev/next
@@ -131,7 +139,7 @@ local function init_winter_action(title)
   }
 end
 
---- mjolnir.Winter.focused()
+--- mjolnir.Winter:focused()
 --- Function
 --- Creates a new WinterAction object for the focused window
 function Winter:focused()
@@ -395,6 +403,30 @@ function WinterAction:screen(direction)
   return self
 end
 
+--- mjolnir.winteraction:vcenter()
+--- Function
+--- Does a vertical centering of the window on the screen. This method
+--- might not do anything if it is not sensible for a given setting
+--- (for example, on a 2x2 grid, where window is 1 cell wide).
+function WinterAction:vcenter()
+  self._vcenter = true
+  self._dx = 0
+  self._x = -1
+  return self
+end
+
+--- mjolnir.winteraction:hcenter()
+--- Function
+--- Does a horizontal centering of the window on the screen. This method
+--- might not do anything if it is not sensible for a given setting
+--- (for example, on a 2x2 grid, where window is 1 cell high).
+function WinterAction:hcenter()
+  self._hcenter = true
+  self._dy = 0
+  self._y = -1
+  return self
+end
+
 --- mjolnir.winteraction:act()
 --- Function
 --- Finalizes all previous commands for changing windows' size and
@@ -413,18 +445,7 @@ function WinterAction:act()
       win = window.focusedwindow()
     end
 
-    local origf = self.ct:get(win)
-    -- print(string.format("origf x=%d, y=%d, w=%d, h=%d", origf.x, origf.y, origf.w, origf.h))
-    -- print(string.format("self x=%d, y=%d, w=%d, h=%d", self.x, self.y, self.w, self.h))
-    -- print(string.format("self dx=%d, dy=%d, dw=%d, dh=%d", self.dx, self.dy, self.dw, self.dh))
-
-    -- take defaults
-    f.w = (self.w == 0) and origf.w or self.w
-    f.h = (self.h == 0) and origf.h or self.h
-    f.x = (self.x == -1) and origf.x or self.x
-    f.y = (self.y == -1) and origf.y or self.y
-
-    -- now, place it on the right screen
+    -- first, determine the screen where the window should go
     local screen = win:screen()
     if self.mainscreen then
       screen = mscreen.mainscreen()
@@ -446,9 +467,17 @@ function WinterAction:act()
       else print("Direction " .. v .. " for screen is not recognized") end
     end
 
-    local srect = screen:frame()
-    origf.screenw = srect.w
-    origf.screenh = srect.h
+    -- now do the window placement
+    local origf = self.ct:get(win, screen)
+    -- print(string.format("origf x=%d, y=%d, w=%d, h=%d", origf.x, origf.y, origf.w, origf.h))
+    -- print(string.format("self x=%d, y=%d, w=%d, h=%d", self.x, self.y, self.w, self.h))
+    -- print(string.format("self dx=%d, dy=%d, dw=%d, dh=%d", self.dx, self.dy, self.dw, self.dh))
+
+    -- take defaults
+    f.w = (self.w == 0) and origf.w or self.w
+    f.h = (self.h == 0) and origf.h or self.h
+    f.x = (self.x == -1) and origf.x or self.x
+    f.y = (self.y == -1) and origf.y or self.y
 
     -- widest and tallest
 
@@ -464,6 +493,16 @@ function WinterAction:act()
     end
     if self.dh ~= 0 then
       f.h = math.min(origf.screenh, math.max(1, f.h + self.dh))
+    end
+
+    -- centering
+    if self._vcenter then
+       print("vcenter called with f.x = ".. f.x .. " origf.sw = " .. origf.screenw)
+       f.x = math.max(0, (origf.screenw - f.w)/2)
+    end
+
+    if self._hcenter then
+       f.y = math.max(0, (origf.screenh - f.h)/2)
     end
 
     -- and positions
