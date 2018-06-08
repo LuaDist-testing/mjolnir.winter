@@ -39,21 +39,22 @@
 
 -- main module class table
 local winter = {
-  _VERSION     = '0.1.0',
+  _VERSION     = '0.2.0',
   _DESCRIPTION = 'A module for moving/resizing windows using a fluent interface',
   _URL         = 'https://github.com/knl/mjolnir.winter',
 }
 
 local appfinder = require "mjolnir.cmsj.appfinder"
 local window = require "mjolnir.window"
+local mscreen = require "mjolnir.screen"
 
 -- class that deals with coordinate transformations
 local CoordTrans = {}
 
 function CoordTrans:set(win, screen, f)
   local screenrect = screen:frame()
-  print(string.format("set: screen x=%d, y=%d, w=%d, h=%d", screenrect.x, screenrect.y, screenrect.w, screenrect.h))
-  print(string.format("set: input f x=%d, y=%d, w=%d, h=%d", f.x, f.y, f.w, f.h))
+  -- print(string.format("set: screen x=%d, y=%d, w=%d, h=%d", screenrect.x, screenrect.y, screenrect.w, screenrect.h))
+  -- print(string.format("set: input f x=%d, y=%d, w=%d, h=%d", f.x, f.y, f.w, f.h))
   newf = {
     x = f.x + screenrect.x,
     y = f.y + screenrect.y,
@@ -68,8 +69,8 @@ function CoordTrans:get(win, _screen)
   local f = win:frame()
   local screen = _screen or win:screen()
   local screenrect = screen:frame()
-  print(string.format("get: screen x=%d, y=%d, w=%d, h=%d", screenrect.x, screenrect.y, screenrect.w, screenrect.h))
-  print(string.format("get: win f x=%d, y=%d, w=%d, h=%d", f.x, f.y, f.w, f.h))
+  -- print(string.format("get: screen x=%d, y=%d, w=%d, h=%d", screenrect.x, screenrect.y, screenrect.w, screenrect.h))
+  -- print(string.format("get: win f x=%d, y=%d, w=%d, h=%d", f.x, f.y, f.w, f.h))
   return {
     x = f.x - screenrect.x,
     y = f.y - screenrect.y,
@@ -116,6 +117,10 @@ local function init_winter_action(title)
     dy = 0,
     dw = 0,
     dh = 0,
+    -- screen
+    mainscreen = false,
+    dscreen = 0, -- for prev/next
+    screen_compass = {}, -- for east/west/north/south
     -- 'mosts'
     _tallest = false,
     _widest = false,
@@ -154,22 +159,6 @@ function Winter:snap(win)
   if win:isstandard() then
     self.ct:set(win, self:get(win), win:screen())
   end
-end
-
---- mjolnir.winter.pushwindow_nextscreen()
---- Function
---- Moves the focused window to the next screen, using its current cell on that screen.
-function Winter:pushwindow_nextscreen()
-  local win = window.focusedwindow()
-  self.ct:set(win, grid.get(win), win:screen():next())
-end
-
---- mjolnir.winter.pushwindow_prevscreen()
---- Function
---- Moves the focused window to the previous screen, using its current cell on that screen.
-function Winter:pushwindow_prevscreen()
-  local win = window.focusedwindow()
-  self.ct:set(win, grid.get(win), win:screen():previous())
 end
 
 --- mjolnir.winteraction:xpos(x)
@@ -352,6 +341,60 @@ function WinterAction:bottommost()
   return self
 end
 
+--- mjolnir.winteraction:nextscreen()
+--- Function
+--- Moves the focused window to the next screen, using its current position on that screen.
+--- Will reset any of the directional commands (screen() with param 'east'/'west'/'south'/'north').
+function WinterAction:nextscreen()
+  -- self.mainscreen = false
+  self.screen_compass = {}
+  self.dscreen = self.dscreen + 1
+  return self
+end
+
+--- mjolnir.winteraction:prevscreen()
+--- Function
+--- Moves the window to the previous screen, using its current position on that screen.
+--- Will reset any of the directional commands (screen() with param 'east'/'west'/'south'/'north').
+function WinterAction:prevscreen()
+  -- self.mainscreen = false
+  self.screen_compass = {}
+  self.dscreen = self.dscreen - 1
+  return self
+end
+
+--- mjolnir.winteraction:mainscreen()
+--- Function
+--- Moves the window to the main screen, using its current position on that screen.
+--- Will reset any of the directional commands (screen() with param 'east'/'west'/'south'/'north'),
+--- in addition to reseting any prev/next screen commands.
+function WinterAction:mainscreen()
+  self.mainscreen = true
+  self.screen_compass = {}
+  self.dscreen = 0
+  return self
+end
+
+--- mjolnir.winteraction:screen(direction)
+--- Function
+--- Moves the window to the screen denoted with direction, using its current position on that screen.
+--- Direction must be one of 'east', 'west', 'north', or 'south'. If direction is missing,
+--- the function does nothing. An invocation of this method with a valid parameter will reset actions of
+--- any previous call to previous or next screen, but not mainscreen().
+function WinterAction:screen(direction)
+  if not direction then
+    return self
+  end
+  local directions = { east=true, west=true, north=true, south=true }
+  if not items[direction] then
+    print("Direction " .. direction .. " not recognized for screen(direction)")
+    return self
+  end
+  self.dscreen = 0
+  table.insert(self.screen_compass, direction)
+  return self
+end
+
 --- mjolnir.winteraction:act()
 --- Function
 --- Finalizes all previous commands for changing windows' size and
@@ -380,6 +423,32 @@ function WinterAction:act()
     f.h = (self.h == 0) and origf.h or self.h
     f.x = (self.x == -1) and origf.x or self.x
     f.y = (self.y == -1) and origf.y or self.y
+
+    -- now, place it on the right screen
+    local screen = win:screen()
+    if self.mainscreen then
+      screen = mscreen.mainscreen()
+    end
+    local dscreen = self.dscreen
+    while dscreen < 0 do
+      screen = screen:previous()
+      dscreen = dscreen + 1
+    end
+    while dscreen > 0 do
+      screen = screen:next()
+      dscreen = dscreen - 1
+    end
+    for _, v in pairs(self.screen_compass) do
+      if v == 'east' then screen = screen:toeast()
+      elseif v == 'west' then screen = screen:towest()
+      elseif v == 'north' then screen = screen:tonorth()
+      elseif v == 'south' then screen = screen:tosouth()
+      else print("Direction " .. v .. " for screen is not recognized") end
+    end
+
+    local srect = screen:frame()
+    origf.screenw = srect.w
+    origf.screenh = srect.h
 
     -- widest and tallest
 
@@ -420,7 +489,7 @@ function WinterAction:act()
 
     -- print(string.format("final f x=%d, y=%d, w=%d, h=%d", f.x, f.y, f.w, f.h))
     -- print(string.format("application is '%q'", win:title()))
-    self.ct:set(win, win:screen(), f)
+    self.ct:set(win, screen, f)
   end
 end
 

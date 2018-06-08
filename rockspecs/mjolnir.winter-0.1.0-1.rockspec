@@ -1,11 +1,9 @@
--- This file was automatically generated for the LuaDist project.
-
 package = "mjolnir.winter"
 
 -- versioning
 
 local src_version = "0.1.0"
-local pkg_version = "2"
+local pkg_version = "1"
 version = src_version .. "-" .. pkg_version
 
 -- General metadata:
@@ -15,16 +13,10 @@ local desc = [[
   A module for moving/resizing windows using a fluent interface.
 ]]
 
--- LuaDist source
 source = {
-  tag = "0.1.0-2",
-  url = "git://github.com/LuaDist-testing/mjolnir.winter.git"
+  url = "https://" .. url .. "/archive/" .. src_version .. ".tar.gz",
+  dir = package .. "-" .. src_version,
 }
--- Original source
--- source = {
---   url = "https://" .. url .. "/archive/" .. src_version .. ".tar.gz",
---   dir = package .. "-" .. src_version,
--- }
 
 description = {
   summary = desc,
@@ -38,6 +30,7 @@ description = {
 supported_platforms = {"macosx"}
 dependencies = {
   "lua >= 5.2",
+  "mjolnir.window",
   "mjolnir.cmsj.appfinder",
 }
 

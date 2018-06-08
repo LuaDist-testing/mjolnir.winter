@@ -23,7 +23,18 @@ The name winter is a portmanteu of **win**dow mas**ter**.
 	hotkey.bind(scmdalt, '-', winter.focused():widest():resize())
 	hotkey.bind(scmdalt, '=', winter.focused():widest():tallest():resize())
 
-*NOTE*: One must start with `winter.focused()` or `winter.window('title')`
+    -- push to different screen
+    hotkey.bind(cmdalt, '[', winter:focused():prevscreen():move())
+    hotkey.bind(cmdalt, ']', winter:focused():nextscreen():move())
+
+*NOTE*: One must start with `winter:focused()` or `winter:window('title')`
 and end with a command `move()`, `place()`, `resize()`, or `act()`
 (they are all synonyms for the same action). This chain of commands
 will return a function that one can easily pass to hotkey.bind.
+
+## Todo
+
+- [ ] vcenter/hcenter
+- [x] improve screen handling (done in 5851cbe)
+- [ ] tests
+- [ ] do a proper documentation, as the one coming with mjolnir is painfull
